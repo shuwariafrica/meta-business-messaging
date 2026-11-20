@@ -1,0 +1,49 @@
+[package]
+name = "meta-business-messaging"
+description = "Meta's messaging platforms as one protocol: proven webhooks, the subscription handshake, each channel's payloads, and the send bodies"
+edition = "2024"
+rust-version = "1.100.0"
+version = "0.1.0"
+license = "Apache-2.0"
+repository = "https://github.com/shuwariafrica/meta-business-messaging"
+readme = "README.md"
+keywords = ["whatsapp", "messenger", "instagram", "webhook", "messaging"]
+categories = ["network-programming"]
+publish = ["crates-io"]
+
+[dependencies]
+hmac = "0.13.0"
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.151"
+sha2 = "0.11.0"
+[lints.rust]
+future_incompatible = "deny"
+unexpected_cfgs = "deny"
+nonstandard_style = "deny"
+unused = "deny"
+unreachable_pub = "deny"
+unsafe_op_in_unsafe_fn = "deny"
+elided_lifetimes_in_paths = "deny"
+trivial_casts = "deny"
+
+[lints.clippy]
+all = { level = "deny", priority = -1 }
+pedantic = { level = "deny", priority = -1 }
+cargo = { level = "deny", priority = -1 }
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
+indexing_slicing = "deny"
+exit = "deny"
+todo = "deny"
+unimplemented = "deny"
+# Transitive crates choose their own versions; the lint fires on dependencies this workspace does not select.
+multiple_crate_versions = "allow"
+
+# Test and development builds keep file and line in a backtrace and drop the rest of the debug information.
+[profile.dev]
+debug = "line-tables-only"
+
+# Dependencies are built once and cached, and the tests' time is in hashing, signing and serialisation that are dependencies' code.
+[profile.dev.package."*"]
+opt-level = 3

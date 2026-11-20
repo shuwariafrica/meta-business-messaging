@@ -1,0 +1,2 @@
+# Words the lint for documentation would otherwise read as code: a vendor's own name.
+doc-valid-idents = ["WhatsApp", ".."]

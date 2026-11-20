@@ -1,0 +1,13 @@
+.*
+!.cargo/
+!.github/
+!.gitattributes
+!.gitignore
+
+target/
+
+*.md
+!README.md
+!CHANGELOG.md
+!CONTRIBUTING.md
+!SECURITY.md
