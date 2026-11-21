@@ -487,6 +487,7 @@ pub struct Revoke {
 pub struct Status {
     /// The sent message's `wamid`.
     pub id: String,
+    #[expect(clippy::struct_field_names, reason = "the field carries Meta's own name for it")]
     pub status: StatusKind,
     pub timestamp: String,
     #[serde(default)]
@@ -520,6 +521,7 @@ pub enum StatusKind {
 pub struct Pricing {
     #[serde(default)]
     pub billable: Option<bool>,
+    #[expect(clippy::struct_field_names, reason = "the field carries Meta's own name for it")]
     pub pricing_model: String,
     #[serde(rename = "type")]
     pub kind: String,
@@ -538,6 +540,7 @@ pub struct Error {
     #[serde(default)]
     pub message: Option<String>,
     #[serde(default)]
+    #[expect(clippy::struct_field_names, reason = "the field carries Meta's own name for it")]
     pub error_data: Option<ErrorData>,
 }
 

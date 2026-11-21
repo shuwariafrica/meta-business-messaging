@@ -140,6 +140,7 @@ pub mod whatsapp {
         #[serde(rename = "type")]
         pub kind: &'static str,
         #[serde(skip_serializing_if = "Option::is_none")]
+        #[expect(clippy::struct_field_names, reason = "the field carries Meta's own name for it")]
         pub parameter_name: Option<String>,
         pub text: String,
     }
