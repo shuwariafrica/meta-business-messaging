@@ -20,3 +20,14 @@ The API is documented at <https://docs.rs/meta-business-messaging>.
 ## Licence
 
 Apache-2.0, in [LICENSE](LICENSE).
+
+## Verifying a release
+
+Each release is signed with the crate's own key, whose fingerprint is
+
+```
+06BD696D675FD342D2D38B1633CF36226C3E6A0C
+```
+
+[SECURITY.md](https://github.com/shuwariafrica/meta-business-messaging/blob/main/SECURITY.md)
+checks a release against it, with a GitHub login or without one.
