@@ -10,6 +10,8 @@ readme = "README.md"
 keywords = ["whatsapp", "messenger", "instagram", "webhook", "messaging"]
 categories = ["network-programming"]
 publish = ["crates-io"]
+# The package holds the crate and what a reader of it needs, and none of the repository's tooling.
+include = ["/src/**/*.rs", "/README.md", "/CHANGELOG.md", "/LICENSE", "/Cargo.toml", "/Cargo.lock"]
 
 [dependencies]
 hmac = "0.13.0"
