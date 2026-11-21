@@ -26,6 +26,8 @@ pub const ANSWER_WITHIN: Duration = Duration::from_secs(5);
 /// Why a webhook call's signature proves nothing.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Unproven {
+    /// The app secret is empty, so any body signed under it would prove; nothing is compared.
+    EmptySecret,
     /// The header is not `sha256=<64 hex digits>`, or the body cannot take the signed form.
     Malformed,
     /// The signature is another body's, or another secret's.
@@ -35,6 +37,7 @@ pub enum Unproven {
 impl fmt::Display for Unproven {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::EmptySecret => f.write_str("the app secret is empty, so no signature proves the call"),
             Self::Malformed => f.write_str("the call carries no well-formed signature"),
             Self::Mismatch => f.write_str("the signature is not the body's under the app secret"),
         }
