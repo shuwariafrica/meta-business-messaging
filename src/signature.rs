@@ -1,6 +1,13 @@
 //! The proof on every webhook call: `X-Hub-Signature-256: sha256=<hex>`, an HMAC-SHA-256 of the
-//! payload under the app secret. WhatsApp [signs the body as sent](https://developers.facebook.com/documentation/business-messaging/whatsapp/webhooks/create-webhook-endpoint);
-//! Messenger [signs its escaped form](https://developers.facebook.com/documentation/business-messaging/messenger-platform/webhooks), so a call names the [`Form`] its channel signs.
+//! payload under the app secret. A body is read only after [`verify`] has returned `Ok` for it: the
+//! readers take any bytes, and nothing in their types records that the proof was made.
+//!
+//! A call names the [`Form`] its channel signs. WhatsApp
+//! [signs the body as sent](https://developers.facebook.com/documentation/business-messaging/whatsapp/webhooks/create-webhook-endpoint),
+//! [`Form::Raw`]; Messenger [signs its escaped form](https://developers.facebook.com/documentation/business-messaging/messenger-platform/webhooks),
+//! [`Form::EscapedUnicode`]. Which form Instagram signs is unverified: its
+//! [page](https://developers.facebook.com/documentation/instagram-platform/webhooks/setup) states no
+//! escaped form, and this crate has proven no signature Meta made for it.
 
 use hmac::{Hmac, KeyInit, Mac};
 use sha2::Sha256;

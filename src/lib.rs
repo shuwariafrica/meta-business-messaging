@@ -2,7 +2,8 @@
 //! Facebook Page and an Instagram professional account. [`signature`] proves a webhook call,
 //! [`handshake`] answers the subscription, [`whatsapp`], [`messenger`] and [`instagram`] read the
 //! webhook bodies, and [`send`] writes the bodies a send posts. It has no transport: the caller
-//! hands it bytes and posts what it writes.
+//! hands it bytes and posts what it writes. A body is read only after [`signature::verify`] has
+//! returned `Ok` for it, since the readers take any bytes.
 //!
 //! Reading is strict in the type of each field it takes and blind to every other, because Meta adds
 //! fields to live payloads without a new API version. A word outside a closed set reads as that
