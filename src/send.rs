@@ -140,6 +140,7 @@ pub mod whatsapp {
         #[serde(rename = "type")]
         pub kind: &'static str,
         #[serde(skip_serializing_if = "Option::is_none")]
+        #[expect(clippy::struct_field_names, reason = "the field carries Meta's own name for it")]
         pub parameter_name: Option<String>,
         pub text: String,
     }
@@ -413,13 +414,13 @@ mod tests {
     #[test]
     fn the_send_bodies_are_metas_documented_shapes_byte_for_byte() {
         let text =
-            whatsapp::Request::text(whatsapp::To::Number("+254700000001".into()), "It is, from Thursday.".into(), Some("wamid.X".into()), Some("01a1".into()));
+            whatsapp::Request::text(whatsapp::To::Number("+16505551234".into()), "It is, from Thursday.".into(), Some("wamid.X".into()), Some("01a1".into()));
         assert_eq!(
             serde_json::to_string(&text).unwrap(),
-            r#"{"messaging_product":"whatsapp","recipient_type":"individual","to":"+254700000001","type":"text","text":{"body":"It is, from Thursday.","preview_url":false},"context":{"message_id":"wamid.X"},"biz_opaque_callback_data":"01a1"}"#
+            r#"{"messaging_product":"whatsapp","recipient_type":"individual","to":"+16505551234","type":"text","text":{"body":"It is, from Thursday.","preview_url":false},"context":{"message_id":"wamid.X"},"biz_opaque_callback_data":"01a1"}"#
         );
         let template = whatsapp::Request::template(
-            whatsapp::To::Number("+254700000001".into()),
+            whatsapp::To::Number("+16505551234".into()),
             whatsapp::Template {
                 name: "booking_confirmation".into(),
                 language: whatsapp::Language { code: "en".into() },
@@ -432,7 +433,7 @@ mod tests {
         );
         assert_eq!(
             serde_json::to_string(&template).unwrap(),
-            r#"{"messaging_product":"whatsapp","recipient_type":"individual","to":"+254700000001","type":"template","template":{"name":"booking_confirmation","language":{"code":"en"},"components":[{"type":"body","parameters":[{"type":"text","parameter_name":"first_name","text":"Amina"}]}]}}"#
+            r#"{"messaging_product":"whatsapp","recipient_type":"individual","to":"+16505551234","type":"template","template":{"name":"booking_confirmation","language":{"code":"en"},"components":[{"type":"body","parameters":[{"type":"text","parameter_name":"first_name","text":"Amina"}]}]}}"#
         );
         // A business-scoped id in `recipient`, with no `to`: https://developers.facebook.com/documentation/business-messaging/whatsapp/business-scoped-user-ids
         assert_eq!(

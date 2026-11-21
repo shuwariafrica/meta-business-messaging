@@ -487,6 +487,7 @@ pub struct Revoke {
 pub struct Status {
     /// The sent message's `wamid`.
     pub id: String,
+    #[expect(clippy::struct_field_names, reason = "the field carries Meta's own name for it")]
     pub status: StatusKind,
     pub timestamp: String,
     #[serde(default)]
@@ -520,6 +521,7 @@ pub enum StatusKind {
 pub struct Pricing {
     #[serde(default)]
     pub billable: Option<bool>,
+    #[expect(clippy::struct_field_names, reason = "the field carries Meta's own name for it")]
     pub pricing_model: String,
     #[serde(rename = "type")]
     pub kind: String,
@@ -538,6 +540,7 @@ pub struct Error {
     #[serde(default)]
     pub message: Option<String>,
     #[serde(default)]
+    #[expect(clippy::struct_field_names, reason = "the field carries Meta's own name for it")]
     pub error_data: Option<ErrorData>,
 }
 
@@ -629,10 +632,15 @@ mod tests {
         let m = &v.messages[0];
         assert_eq!((m.kind, m.text.as_ref().map(|t| t.body.as_str())), (Kind::Text, Some("Is it available in another color?")));
         assert_eq!(m.from_user_id.as_deref(), Some("US.13491208655302741918"));
-        // A status word, a type and a pricing the crate does not know: the fact still lands as stated.
+        // A status word and a message type the crate does not know read as their sets' `Other`, the rest of the call as stated.
         let other = SENT.replace("\"status\": \"sent\"", "\"status\": \"held_for_quality_assessment\"");
         let e: Envelope = serde_json::from_str(&other).unwrap();
         assert_eq!(e.entry[0].changes[0].value.statuses[0].status, StatusKind::Other);
+        let unknown = TEXT.replace("\"type\": \"text\"", "\"type\": \"hologram\"");
+        let e: Envelope = serde_json::from_str(&unknown).unwrap();
+        let m = &e.entry[0].changes[0].value.messages[0];
+        assert_eq!((m.kind, m.id.as_str()), (Kind::Other, "wamid.HBgLMTY1MDM4Nzk0MzkVAgASGBQzQUFERjg0NDEzNDdFODU3MUMxMAA="));
+        // A status carrying its pricing and an error reads both.
         let priced = SENT.replace(
             "\"recipient_id\": \"16505551234\"",
             "\"recipient_id\": \"16505551234\", \"pricing\": {\"billable\": true, \"pricing_model\": \"PMP\", \"type\": \"regular\", \"category\": \"service\"}, \"errors\": [{\"code\": 131047, \"title\": \"Re-engagement message\", \"message\": \"Re-engagement message\", \"error_data\": {\"details\": \"More than 24 hours\"}}]",

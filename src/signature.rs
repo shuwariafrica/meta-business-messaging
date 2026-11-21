@@ -1,6 +1,13 @@
 //! The proof on every webhook call: `X-Hub-Signature-256: sha256=<hex>`, an HMAC-SHA-256 of the
-//! payload under the app secret. WhatsApp [signs the body as sent](https://developers.facebook.com/documentation/business-messaging/whatsapp/webhooks/create-webhook-endpoint);
-//! Messenger [signs its escaped form](https://developers.facebook.com/documentation/business-messaging/messenger-platform/webhooks), so a call names the [`Form`] its channel signs.
+//! payload under the app secret. A body is read only after [`verify`] has returned `Ok` for it: the
+//! readers take any bytes, and nothing in their types records that the proof was made.
+//!
+//! A call names the [`Form`] its channel signs. WhatsApp
+//! [signs the body as sent](https://developers.facebook.com/documentation/business-messaging/whatsapp/webhooks/create-webhook-endpoint),
+//! [`Form::Raw`]; Messenger [signs its escaped form](https://developers.facebook.com/documentation/business-messaging/messenger-platform/webhooks),
+//! [`Form::EscapedUnicode`]. Which form Instagram signs is unverified: its
+//! [page](https://developers.facebook.com/documentation/instagram-platform/webhooks/setup) states no
+//! escaped form, and this crate has proven no signature Meta made for it.
 
 use hmac::{Hmac, KeyInit, Mac};
 use sha2::Sha256;
@@ -22,9 +29,14 @@ pub enum Form {
 /// Whether `header` proves `body` under `app_secret`, the HMAC compared in constant time.
 ///
 /// # Errors
-/// [`Unproven::Malformed`] for a header not of the form `sha256=<64 hex digits>`, or a body that is
-/// not UTF-8 where [`Form::EscapedUnicode`] is signed; [`Unproven::Mismatch`] where the HMAC differs.
+/// [`Unproven::EmptySecret`] where `app_secret` is empty, before anything is compared: HMAC admits an
+/// empty key, and anyone can sign under it. [`Unproven::Malformed`] for a header not of the form
+/// `sha256=<64 hex digits>`, or a body that is not UTF-8 where [`Form::EscapedUnicode`] is signed;
+/// [`Unproven::Mismatch`] where the HMAC differs.
 pub fn verify(app_secret: &[u8], header: &str, body: &[u8], form: Form) -> Result<(), Unproven> {
+    if app_secret.is_empty() {
+        return Err(Unproven::EmptySecret);
+    }
     let hex = header.strip_prefix("sha256=").ok_or(Unproven::Malformed)?;
     let expected = decode_hex(hex).ok_or(Unproven::Malformed)?;
     let signed: Vec<u8> = match form {
@@ -77,6 +89,17 @@ fn decode_hex(hex: &str) -> Option<[u8; 32]> {
 mod tests {
     use super::*;
 
+    /// `sha256=<hex>` of `signed` under `secret`, as Meta writes the header.
+    fn header(secret: &[u8], signed: &[u8]) -> String {
+        let mut mac = Hmac::<Sha256>::new_from_slice(secret).unwrap();
+        mac.update(signed);
+        mac.finalize().into_bytes().iter().fold(String::from("sha256="), |mut acc, b| {
+            use std::fmt::Write as _;
+            let _ = write!(acc, "{b:02x}");
+            acc
+        })
+    }
+
     /// The published HMAC-SHA256 vector: key `key`, message `The quick brown fox jumps over the lazy dog`.
     const VECTOR: &str = "sha256=f7bc83f430538424b13298e6aa6fb143ef4d59a14946175997479dbc2d1a3cd8";
 
@@ -94,19 +117,21 @@ mod tests {
     }
 
     #[test]
+    fn an_empty_app_secret_proves_nothing_though_the_body_is_signed_under_it() {
+        let body = b"{\"object\":\"whatsapp_business_account\",\"entry\":[]}";
+        assert_eq!(verify(b"", &header(b"", body), body, Form::Raw), Err(Unproven::EmptySecret));
+        assert_eq!(verify(b"", &header(b"", body), body, Form::EscapedUnicode), Err(Unproven::EmptySecret));
+        assert_eq!(verify(b"", "sha1=abc", body, Form::Raw), Err(Unproven::EmptySecret), "refused before the header is read");
+    }
+
+    #[test]
     fn messenger_signs_the_escaped_unicode_form_as_metas_example_states_it() {
         assert_eq!(escape_unicode("\u{e4}\u{f6}\u{e5}"), "\\u00e4\\u00f6\\u00e5");
         assert_eq!(escape_unicode("plain ascii {\"a\":1}"), "plain ascii {\"a\":1}");
         assert_eq!(escape_unicode("\u{1F600}"), "\\ud83d\\ude00", "a character beyond the BMP is its two UTF-16 units");
         // The escaped form is what is signed: the raw form's HMAC does not prove it, and vice versa.
         let body = "{\"text\":\"\u{e4}\u{f6}\u{e5}\"}";
-        let mut mac = Hmac::<Sha256>::new_from_slice(b"secret").unwrap();
-        mac.update(escape_unicode(body).as_bytes());
-        let header = mac.finalize().into_bytes().iter().fold(String::from("sha256="), |mut acc, b| {
-            use std::fmt::Write as _;
-            let _ = write!(acc, "{b:02x}");
-            acc
-        });
+        let header = header(b"secret", escape_unicode(body).as_bytes());
         assert_eq!(verify(b"secret", &header, body.as_bytes(), Form::EscapedUnicode), Ok(()));
         assert_eq!(verify(b"secret", &header, body.as_bytes(), Form::Raw), Err(Unproven::Mismatch));
         assert_eq!(verify(b"secret", &header, &[0xff, 0xfe], Form::EscapedUnicode), Err(Unproven::Malformed), "not UTF-8");
