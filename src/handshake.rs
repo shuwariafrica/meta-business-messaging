@@ -77,6 +77,9 @@ fn decoded(text: &str) -> Option<String> {
 /// Why the handshake is refused.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Refused {
+    /// The caller's own verify token is empty, so a call carrying none would match it; nothing is
+    /// compared.
+    EmptyToken,
     /// `hub.mode` is not `subscribe`.
     Mode,
     /// `hub.verify_token` is not the caller's.
@@ -86,8 +89,12 @@ pub enum Refused {
 /// The body to answer with status 200: the challenge, where the call carries `verify_token`.
 ///
 /// # Errors
+/// [`Refused::EmptyToken`] where `verify_token` is empty, before anything is compared; otherwise
 /// [`Refused`], the call's first fault in the order of its variants.
 pub fn answer<'a>(call: &Verification<'a>, verify_token: &str) -> Result<&'a str, Refused> {
+    if verify_token.is_empty() {
+        return Err(Refused::EmptyToken);
+    }
     if call.mode != "subscribe" {
         return Err(Refused::Mode);
     }
@@ -112,6 +119,9 @@ mod tests {
         assert_eq!(answer(&call, "vibecodin"), Err(Refused::Token));
         assert_eq!(answer(&call, "vibecoding2"), Err(Refused::Token));
         assert_eq!(answer(&Verification { mode: "unsubscribe", ..call }, "vibecoding"), Err(Refused::Mode));
+        // An empty configured token would match a call carrying none.
+        let empty = Verification { verify_token: "", ..call };
+        assert_eq!(answer(&empty, ""), Err(Refused::EmptyToken));
         // WhatsApp's page calls the challenge "a random string", so it is answered as sent, digits or not.
         assert_eq!(answer(&Verification { challenge: "a1b2-c3", ..call }, "vibecoding"), Ok("a1b2-c3"));
     }
