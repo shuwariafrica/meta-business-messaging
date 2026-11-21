@@ -1,7 +1,10 @@
 //! The [subscription handshake](https://developers.facebook.com/documentation/business-messaging/whatsapp/webhooks/create-webhook-endpoint): Meta calls the callback with
-//! `GET ?hub.mode=subscribe&hub.challenge=<int>&hub.verify_token=<the caller's>` and takes status 200
-//! with the challenge as the body for a subscription, and anything else as a refusal. Every channel
-//! does the same.
+//! `GET ?hub.mode=subscribe&hub.challenge=<challenge>&hub.verify_token=<the caller's>` and takes
+//! status 200 with the challenge as the body for a subscription, and anything else as a refusal.
+//! Every channel does the same. WhatsApp's page calls the challenge "A random string that Meta will
+//! generate"; [Messenger's](https://developers.facebook.com/documentation/business-messaging/messenger-platform/webhooks)
+//! and [Instagram's](https://developers.facebook.com/documentation/instagram-platform/webhooks/setup) call it an
+//! `int`. [`answer`] returns it as the call carries it.
 
 /// The three query parameters as the call carries them.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -78,8 +81,6 @@ pub enum Refused {
     Mode,
     /// `hub.verify_token` is not the caller's.
     Token,
-    /// `hub.challenge` is not an integer.
-    Challenge,
 }
 
 /// The body to answer with status 200: the challenge, where the call carries `verify_token`.
@@ -94,9 +95,6 @@ pub fn answer<'a>(call: &Verification<'a>, verify_token: &str) -> Result<&'a str
     // whole, every byte read whatever the first difference.
     if call.verify_token.len() != verify_token.len() || call.verify_token.bytes().zip(verify_token.bytes()).fold(0_u8, |acc, (a, b)| acc | (a ^ b)) != 0 {
         return Err(Refused::Token);
-    }
-    if call.challenge.is_empty() || !call.challenge.bytes().all(|b| b.is_ascii_digit()) {
-        return Err(Refused::Challenge);
     }
     Ok(call.challenge)
 }
@@ -114,8 +112,8 @@ mod tests {
         assert_eq!(answer(&call, "vibecodin"), Err(Refused::Token));
         assert_eq!(answer(&call, "vibecoding2"), Err(Refused::Token));
         assert_eq!(answer(&Verification { mode: "unsubscribe", ..call }, "vibecoding"), Err(Refused::Mode));
-        assert_eq!(answer(&Verification { challenge: "11582x", ..call }, "vibecoding"), Err(Refused::Challenge));
-        assert_eq!(answer(&Verification { challenge: "", ..call }, "vibecoding"), Err(Refused::Challenge));
+        // WhatsApp's page calls the challenge "a random string", so it is answered as sent, digits or not.
+        assert_eq!(answer(&Verification { challenge: "a1b2-c3", ..call }, "vibecoding"), Ok("a1b2-c3"));
     }
 
     #[test]
