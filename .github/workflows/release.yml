@@ -7,7 +7,7 @@ name: release
 #
 # Taken from public-crates' template/: 056ee22c537f9a9a2a3fece6b8dd103f4a5351e3 stands for the commit
 # of shuwariafrica/.github that holds the crate-* actions, and
-# db732809f5fefb0debd4d92d3f8bc6d143632930 for public-crates' gate-commit; each is replaced by the
+# db1c310743aa3b74d33800ea7b5687e48a7bb79a for public-crates' gate-commit; each is replaced by the
 # commit itself, and moves with it. crate-admit and crate-sign refuse a run whose actions are not at
 # those commits or at a commit .github's actions/third-party.tsv lists. Every artefact is uploaded,
 # downloaded and attested by a step of this file, downloaded by the id its upload returned, and
@@ -106,7 +106,7 @@ jobs:
         with:
           artifact-ids: ${{ needs.package.outputs.artifact || 'none' }}
           path: ${{ runner.temp }}/packaged
-      - uses: shuwariafrica/public-crates/.github/actions/checks@db732809f5fefb0debd4d92d3f8bc6d143632930
+      - uses: shuwariafrica/public-crates/.github/actions/checks@db1c310743aa3b74d33800ea7b5687e48a7bb79a
         with:
           project: project
           platform: ${{ matrix.platform }}
